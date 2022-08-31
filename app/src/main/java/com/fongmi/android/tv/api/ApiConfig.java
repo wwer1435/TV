@@ -54,6 +54,10 @@ public class ApiConfig {
         return get().getHome().getName();
     }
 
+    public static int getHomeIndex() {
+        return get().getSites().indexOf(get().getHome());
+    }
+
     public static String getSiteName(String key) {
         return get().getSite(key).getName();
     }
@@ -240,16 +244,5 @@ public class ApiConfig {
         this.parses.clear();
         this.home = null;
         return this;
-    }
-
-    public void release() {
-        this.ads = null;
-        this.home = null;
-        this.sites = null;
-        this.lives = null;
-        this.flags = null;
-        this.parses = null;
-        this.loader = null;
-        this.handler = null;
     }
 }
