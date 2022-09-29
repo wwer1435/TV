@@ -16,8 +16,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.net.URLConnection;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class FileUtil {
 
@@ -39,8 +41,8 @@ public class FileUtil {
         return new File(getCacheDir(), fileName);
     }
 
-    public static File getJar() {
-        return getCacheFile("spider.jar");
+    public static File getJar(String fileName) {
+        return getCacheFile(getMD5(fileName).concat(".jar"));
     }
 
     public static File getLocal(String path) {
@@ -56,12 +58,13 @@ public class FileUtil {
         return TextUtils.isEmpty(mimeType) ? "*/*" : mimeType;
     }
 
-    public static void write(File file, byte[] data) throws Exception {
+    public static File write(File file, byte[] data) throws Exception {
         FileOutputStream fos = new FileOutputStream(file);
         fos.write(data);
         fos.flush();
         fos.close();
         chmod(file);
+        return file;
     }
 
     public static String read(String path) {
@@ -75,6 +78,16 @@ public class FileUtil {
         } catch (Exception e) {
             return "";
         }
+    }
+
+    public static String convert(String text) {
+        if (TextUtils.isEmpty(text)) return "";
+        if (text.startsWith("clan")) return text.replace("clan", "file");
+        if (text.startsWith(".")) text = text.substring(1);
+        if (text.startsWith("/")) text = text.substring(1);
+        Uri uri = Uri.parse(Prefers.getUrl());
+        if (uri.getLastPathSegment() == null) return uri.getScheme() + "://" + text;
+        return uri.toString().replace(uri.getLastPathSegment(), text);
     }
 
     private static String getMd5(File file) {
@@ -94,8 +107,22 @@ public class FileUtil {
         }
     }
 
-    public static boolean equals(String md5) {
-        return getMd5(FileUtil.getJar()).equalsIgnoreCase(md5);
+    public static String getMD5(String src) {
+        try {
+            if (TextUtils.isEmpty(src)) return "";
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] messageDigest = md.digest(src.getBytes());
+            BigInteger no = new BigInteger(1, messageDigest);
+            StringBuilder sb = new StringBuilder(no.toString(16));
+            while (sb.length() < 32) sb.insert(0, "0");
+            return sb.toString().toLowerCase();
+        } catch (NoSuchAlgorithmException e) {
+            return "";
+        }
+    }
+
+    public static boolean equals(String jar, String md5) {
+        return getMd5(getJar(jar)).equalsIgnoreCase(md5);
     }
 
     public static void clearDir(File dir) {
