@@ -4,15 +4,26 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
 public class Json {
 
-    public static String safeString(JsonObject obj, String key, String value) {
+    public static boolean valid(String text) {
+        try {
+            new JSONObject(text);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static String safeString(JsonObject obj, String key) {
         if (obj.has(key)) return obj.getAsJsonPrimitive(key).getAsString().trim();
-        else return value;
+        else return "";
     }
 
     public static List<String> safeListString(JsonObject obj, String key) {

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.KeyEvent;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -42,6 +43,7 @@ import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.Prefers;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.Updater;
+import com.fongmi.android.tv.utils.Utils;
 import com.google.common.collect.Lists;
 
 import org.greenrobot.eventbus.EventBus;
@@ -56,7 +58,6 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
     private ArrayObjectAdapter mAdapter;
     private ArrayObjectAdapter mHistoryAdapter;
     private HistoryPresenter mHistoryPresenter;
-    private FuncPresenter mFuncPresenter;
     private SiteViewModel mViewModel;
     private boolean mConfirmExit;
     private Handler mHandler;
@@ -86,7 +87,6 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
 
     @Override
     protected void initEvent() {
-        EventBus.getDefault().register(this);
         mBinding.title.setListener(this);
         mBinding.recycler.addOnChildViewHolderSelectedListener(new OnChildViewHolderSelectedListener() {
             @Override
@@ -131,7 +131,7 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
         int index = getRecommendIndex();
         mViewModel.getResult().setValue(Result.empty());
         if (mAdapter.size() > index) mAdapter.removeItems(index, mAdapter.size() - index);
-        if (ApiConfig.get().getHome().getName().isEmpty()) mBinding.title.setText(R.string.app_name);
+        if (ApiConfig.getHomeName().isEmpty()) mBinding.title.setText(R.string.app_name);
         else mBinding.title.setText(ApiConfig.getHomeName());
         if (ApiConfig.get().getHome().getKey().isEmpty()) return;
         mViewModel.homeContent();
@@ -147,10 +147,11 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
     }
 
     private ListRow getFuncRow() {
-        ArrayObjectAdapter adapter = new ArrayObjectAdapter(mFuncPresenter = new FuncPresenter(this));
+        ArrayObjectAdapter adapter = new ArrayObjectAdapter(new FuncPresenter(this));
         adapter.add(Func.create(R.string.home_vod));
         adapter.add(Func.create(R.string.home_live));
         adapter.add(Func.create(R.string.home_search));
+        adapter.add(Func.create(R.string.home_keep));
         adapter.add(Func.create(R.string.home_push));
         adapter.add(Func.create(R.string.home_setting));
         return new ListRow(adapter);
@@ -187,8 +188,14 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
             case R.string.home_vod:
                 VodActivity.start(this, mViewModel.getResult().getValue());
                 break;
+            case R.string.home_live:
+                LiveActivity.start(this);
+                break;
             case R.string.home_search:
                 SearchActivity.start(this);
+                break;
+            case R.string.home_keep:
+                KeepActivity.start(this);
                 break;
             case R.string.home_push:
                 PushActivity.start(this);
@@ -233,7 +240,7 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
 
     @Override
     public void showDialog() {
-        SiteDialog.show(this);
+        SiteDialog.create(this).show();
     }
 
     @Override
@@ -244,6 +251,7 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onRefreshEvent(RefreshEvent event) {
+        super.onRefreshEvent(event);
         switch (event.getType()) {
             case VIDEO:
                 getVideo();
@@ -266,19 +274,25 @@ public class HomeActivity extends BaseActivity implements CustomTitleView.Listen
     public void onServerEvent(ServerEvent event) {
         switch (event.getType()) {
             case SEARCH:
-                CollectActivity.start(this, event.getText());
+                CollectActivity.start(this, event.getText(), true);
                 break;
             case PUSH:
                 if (ApiConfig.get().getSite("push_agent") == null) return;
-                DetailActivity.start(this, "push_agent", event.getText());
+                DetailActivity.start(this, "push_agent", event.getText(), true);
                 break;
         }
     }
 
     @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (Utils.isMenuKey(event)) showDialog();
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
-        Clock.start(mBinding.time);
+        Clock.start(mBinding.time, "MM/dd HH:mm:ss");
     }
 
     @Override
